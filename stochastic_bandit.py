@@ -41,7 +41,7 @@ class simulation_environment():
                     rewards=forecaster_rewards[0:t],
                     actions=self.actions[0:t])
             self.actions[t] = action
-            forecaster_rewards[t]+=true_rewards[t,action]*factor
+            forecaster_rewards[t]+=true_rewards[t,action]
         self.true_rewards += np.multiply(true_rewards, factor)
         self.forecaster_rewards += np.multiply(forecaster_rewards, factor)
         self.mu_hat += np.multiply(mu_hat, factor)
@@ -54,7 +54,7 @@ class simulation_environment():
         for i in range(0, repetitions):
             self.play_round(rounds, factor=1/repetitions)
             if log_pseudo_regret:
-                pseudo_regret += self.get_pseudo_regret(
+                pseudo_regret += self.get_pseudo_regret( #!!! muss noch überprüft werden
                             self.bandit.expected_values)*(1/repetitions)
         self.mean_pseudo_regret = pseudo_regret   
             
