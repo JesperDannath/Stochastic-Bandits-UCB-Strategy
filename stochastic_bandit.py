@@ -11,7 +11,7 @@ from scipy.stats import bernoulli as ber
 import pandas as pd
 
 #Firstly, the Bandit and Forecaster Environment is created
-class env():
+class simulation_environment():
     
     def __init__(self, bandit, forecaster):
         self.bandit = bandit
@@ -41,7 +41,7 @@ class env():
                     rewards=forecaster_rewards[0:t],
                     actions=self.actions[0:t])
             self.actions[t] = action
-            self.forecaster_rewards[t]+=true_rewards[t,action]*factor
+            forecaster_rewards[t]+=true_rewards[t,action]*factor
         self.true_rewards += np.multiply(true_rewards, factor)
         self.forecaster_rewards += np.multiply(forecaster_rewards, factor)
         self.mu_hat += np.multiply(mu_hat, factor)
@@ -55,7 +55,7 @@ class env():
             self.play_round(rounds, factor=1/repetitions)
             if log_pseudo_regret:
                 pseudo_regret += self.get_pseudo_regret(
-                            bandit.expected_values)*(1/repetitions)
+                            self.bandit.expected_values)*(1/repetitions)
         self.mean_pseudo_regret = pseudo_regret   
             
     def get_regret(self):
@@ -96,14 +96,14 @@ class env():
 
 #Now, we define the stochastic bandit
 class stochastic_bandit():
-    
+#!!! my_hat  und psi hier loggen!    
     def __init__(self, arms, expected_values=None, shedule=False):
         #The list of arms for the bandit
         self.arms = arms
         #Number of arms
         self.K = len(arms)
         #Timestep (only important for sheduled arms)
-        self.t = 1 #!!! Wofür?
+        self.t = 1
         self.shedule=shedule
         self.expected_values = expected_values
     
@@ -181,14 +181,4 @@ class ucb_forecaster():
         
     
 
-#Experiments
-bandit = stochastic_bandit(arms=[bernoulli(0.2), bernoulli(0.7)],
-                                 expected_values = [0.2, 0.7])
-#env = env(bandit, random_forecaster)
-env1 = env(bandit, ucb_forecaster())
-env1.play_round(12)
-res = env1.export_results("results_stochastic_bandit/Bernoulli_Experiment_12.csv")
-        
-env1.play_many_rounds(12, 100, True)        
-        
         
