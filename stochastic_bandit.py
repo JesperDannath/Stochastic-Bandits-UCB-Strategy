@@ -125,8 +125,11 @@ class bernoulli():
 #Random forecaster
 class random_forecaster():
     
-    def predict(K, rewards, actions):
-        return(random.randint(0,K-1),-99,-99)
+    def reset_rounds(self, rounds, K, repetitions):
+        None
+    
+    def predict(self, K, rewards, actions):
+        return(random.randint(0,K-1))
     
     
 #UCB-Forecaster which has sqrt(x/2) as default psi-star inverse

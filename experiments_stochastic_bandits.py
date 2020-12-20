@@ -8,17 +8,22 @@ Created on Wed Dec 16 16:21:07 2020
 from stochastic_bandit import stochastic_bandit
 from stochastic_bandit import simulation_environment as env
 from stochastic_bandit import ucb_forecaster
+from stochastic_bandit import random_forecaster
 from stochastic_bandit import bernoulli
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
+#Resultfolder
+folder = "results_stochastic_bandit/"
+
 
 #Hilfsfunktionen
 def plot_list(l, title="", xlabel="", ylabel="", labels="",
               axis_data=[]):
-    if len(axis_data==0):
-        axis_data=list(range(len(l[0])))
+    plt.close()
+    if len(axis_data)==0:
+        axis_data=np.arange(0, len(l[0]), step = int(len(l[0])/5))
     for i in range(0,len(l)):
         #plt.plot(np.stack((l[i], axis_data), axis=1))
         plt.plot(l[i])
@@ -26,13 +31,13 @@ def plot_list(l, title="", xlabel="", ylabel="", labels="",
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend(labels=labels)
-    plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0]))/len(axis_data)),
+    plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0])/len(axis_data))),
                labels=axis_data)
 
 
 #Experiments
 #number of reps
-reps = 5
+reps = 300
 
 ###Two arm bandit
 
@@ -85,8 +90,12 @@ plot_list(increase_T(100, env1),
           ylabel="Values",
           xlabel="Timesteps",
           labels=["Regret", "Pseudo-Regret"],
-          axis_data = np.arange(0, 100, step=10))
-#40 runs seem to be sufficient for convergence
+          axis_data = np.arange(0, 100, step=20))
+
+plt.savefig(folder+"Increase_t_2class.png")
+
+#80 runs seem to be sufficient for convergence
+
 
 
 #Many runs effect of alpha
@@ -112,9 +121,10 @@ alpha_incr_2class = increase_alpha(min_alpha=0.1, max_alpha=4,
 plot_list(alpha_incr_2class[0:2],
           title="Effect of Increasing alpha",
           labels=["Regret", "Pseudo-Regret"],
-          axis_data=np.arange(np.min(alpha_incr_2class[2]),
-                              np.max(alpha_incr_2class[2]),
+          axis_data=np.arange(0.1,
+                              4.0,
                               step=0.5))
+plt.savefig(folder+"Increase_alpha_2class.png")
 #0.5 seems to be a good alpha value
 
 #Many runs effect of p-gap
@@ -144,4 +154,23 @@ plot_list(incr_pgap_2class[0:2],
           title="Effect of increasing p-gap",
           labels=["Regret", "Pseudo-Regret"],
           axis_data=np.arange(0.01, 1, step=0.5))
+plt.savefig(folder+"Increase_p_gap_2class.png")
+
+
+
+#Experiments Vaccine Example
+arms_vaccines = [bernoulli(0.99), bernoulli(0.9945), bernoulli(0.995)]
+bandit_vac = stochastic_bandit(arms=arms_vaccines, 
+                               expected_values=[0.99, 0.9945, 0.995])
+env_vac = env(bandit_vac, ucb_forecaster(alpha=0.5)) 
+
+env_vac.play_many_rounds(rounds=1000, repetitions=10000, log_pseudo_regret=True)
+
+env_vac.play_round(300000)
+#Regret 256
+
+#Test Against random forecaster
+env_vac_rand = env(bandit_vac, random_forecaster())
+env_vac_rand.play_round(300000)
+#Regret 615
 
