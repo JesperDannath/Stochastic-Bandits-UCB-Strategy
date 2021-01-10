@@ -144,6 +144,9 @@ class ucb_forecaster():
         self.alpha=alpha
         
     def reset_rounds(self, rounds, K, reps):
+        self.t = 0
+        self.mean_reward_list = np.zeros(K, dtype=np.float64)
+        self.action_counter_list = np.zeros(K, dtype=int)
         self.rounds=rounds
         self.reps=reps
         self.K = K
@@ -151,30 +154,42 @@ class ucb_forecaster():
         self.p_s_i_list = np.zeros((self.rounds, self.K))
     
     def predict(self, K, rewards, actions):
+        last_index = len(rewards)-1
+        if(last_index!=-1):
+            action = int(actions[last_index])
+            self.action_counter_list[action] += 1
+            reward = rewards[last_index]
+        else:
+            action=None
+            reward=0
         t = len(rewards)+1
-        mu_hat_list = np.zeros(K, dtype=float)
         p_s_i_list = np.zeros(K, dtype=float)
         for i in range(0,K):
             #Calulate mu_hat
-            x_indicator = np.where(actions==i)
-            x = rewards[x_indicator]
-            mu_hat_list[i] = np.mean(x) if not x.size==0 else 0.0   
+            n_pulled = self.action_counter_list[i]
+            #Updating mean by formula: mean = factor1*prev_mean + factor2*reward
+            if(action==i):
+                prev_mean = self.mean_reward_list[i].copy()
+                factor1 = ((n_pulled-1)/(n_pulled))
+                factor2 = (1/n_pulled)
+                self.mean_reward_list[i] = np.add(np.multiply(factor1, prev_mean),
+                                                  np.multiply(factor2, reward))
             #Calculate psi-star-reversed of (alpha*ln(t)/n_i_selected)
             #n_i_selected - this can be zero!!!  
             #This means we go to infinity and explore those values fast!!
-            if len(x_indicator[0])==0:
+            if n_pulled==0:
                 p_s_i_list[i] = np.inf
             else:
-                p_s_i_list[i] =  self.psi_star_inverse(self.alpha*np.log(t)/len(x_indicator[0]))
+                p_s_i_list[i] =  self.psi_star_inverse(self.alpha*np.log(t)/n_pulled)
             #print(x_indicator)
-        bounds = np.add(mu_hat_list, p_s_i_list)
+        bounds = np.add(self.mean_reward_list, p_s_i_list)
         maximum = np.argwhere(bounds == np.amax(bounds)).flatten()
         #Treat case of multiple maximas
         if len(maximum)==1:
             maximum = maximum[0]
         else:
             maximum = maximum[random.randint(0,len(maximum)-1)]
-        self.mu_hat_list[t-1]+=np.multiply(mu_hat_list, (1/self.reps))
+        self.mu_hat_list[t-1]+=np.multiply(self.mean_reward_list, (1/self.reps))
         self.p_s_i_list[t-1]+=np.multiply(p_s_i_list, (1/self.reps))
         return(maximum)
         

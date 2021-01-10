@@ -162,7 +162,7 @@ plt.savefig(folder+"Increase_p_gap_2class.png")
 arms_vaccines = [bernoulli(0.99), bernoulli(0.9945), bernoulli(0.995)]
 bandit_vac = stochastic_bandit(arms=arms_vaccines, 
                                expected_values=[0.99, 0.9945, 0.995])
-env_vac = env(bandit_vac, ucb_forecaster(alpha=0.5)) 
+env_vac = env(bandit_vac, ucb_forecaster(alpha=0.3)) 
 
 env_vac.play_many_rounds(rounds=1000, repetitions=10000, log_pseudo_regret=True)
 
