@@ -37,7 +37,7 @@ def plot_list(l, title="", xlabel="", ylabel="", labels="",
 
 #Experiments
 #number of reps
-reps = 300
+reps = 40
 
 ###Two arm bandit
 
@@ -48,6 +48,7 @@ env1 = env(bandit, ucb_forecaster())
 #env = env(bandit, random_forecaster)
 
 env1.play_round(rounds=12)
+env1.forecaster.return_theoretic_bound([0.2,0.7], 12)
 
 def export_result_sb(env, file):
     dictionary = {"Player rewards": env.forecaster_rewards,
@@ -56,10 +57,10 @@ def export_result_sb(env, file):
     true_rewards = pd.DataFrame(env.true_rewards,
                                 columns = [
                                 "True Reward Arm "+str(i) for i in range(0,env.bandit.K)])
-    mu_hat = pd.DataFrame(env.mu_hat,
+    mu_hat = pd.DataFrame(env.forecaster.mu_hat_list,
                           columns = [
                           "Mu Hat Arm "+str(i) for i in range(0,env.bandit.K)])
-    psi_s_inverse = pd.DataFrame(env.psi_s_inverse,
+    psi_s_inverse = pd.DataFrame(env.forecaster.p_s_i_list,
                                  columns = [
                                  "P.S.I "+str(i) for i in range(0,env.bandit.K)])
     experiment_data = pd.concat([experiment_data,
@@ -74,18 +75,23 @@ res = export_result_sb(env1, file="results_stochastic_bandit/Bernoulli_Experimen
 
 
 #Many runs development of regret and pseudo_regret
-def increase_T(max_T, env, reps=reps):
-    regret = np.zeros(max_T)
-    pseudo_regret = np.zeros(max_T)
-    for T in range(1, max_T+1):
-        env.play_many_rounds(T, reps, True)
-        pseudo_regret[T-1]=env.mean_pseudo_regret/T
-        regret[T-1]=env.get_regret()/T
+def increase_T(max_T, env, reps=reps, step=1, theory_bound=False):
+    regret = []
+    pseudo_regret = []
+    if theory_bound: bounds = []
+    for T in range(1, max_T+1, step):
+        env.play_many_rounds(rounds=T, repetitions=reps, log_pseudo_regret=True)
+        pseudo_regret.append(env.mean_pseudo_regret/T)
+        regret.append(env.get_regret()/T)
+        print(T)
+        if theory_bound: bounds.append(
+                env.forecaster.return_theoretic_bound(env.bandit.expected_values, T)/T)
+    if theory_bound: return(regret, pseudo_regret, bounds)
     return(regret, pseudo_regret)
     
-regret, pseudo_regret = increase_T(100, env1)
+#regret, pseudo_regret = increase_T(100, env1, 5)
         
-plot_list(increase_T(100, env1), 
+plot_list(increase_T(max_T = 100, env=env1, step=1), 
           title="(Pseudo-) Regret per Timestep for increasing \n Number of Rounds",
           ylabel="Values",
           xlabel="Timesteps",
@@ -162,15 +168,31 @@ plt.savefig(folder+"Increase_p_gap_2class.png")
 arms_vaccines = [bernoulli(0.99), bernoulli(0.9945), bernoulli(0.995)]
 bandit_vac = stochastic_bandit(arms=arms_vaccines, 
                                expected_values=[0.99, 0.9945, 0.995])
-env_vac = env(bandit_vac, ucb_forecaster(alpha=0.3)) 
+env_vac = env(bandit_vac, ucb_forecaster(alpha=2.1)) 
 
-env_vac.play_many_rounds(rounds=1000, repetitions=10000, log_pseudo_regret=True)
+env_vac.play_many_rounds(rounds=100000, repetitions=100, log_pseudo_regret=True)
 
-env_vac.play_round(300000)
-#Regret 256
+env_vac.play_round(5700000)
+#Regret: 2629
+#Pseudo-Regret: 2730.454
 
 #Test Against random forecaster
 env_vac_rand = env(bandit_vac, random_forecaster())
-env_vac_rand.play_round(300000)
-#Regret 615
+env_vac_rand.play_round(5700000)
+#Regret: 10260
+#Pseudo_regret: 10449.534
+
+#Increase T:
+incr_T_vac = increase_T(100000, env_vac, reps=30, step=1000, theory_bound=True)
+
+
+plot_list(incr_T_vac,
+          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
+          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
+          axis_data=np.arange(0, 100000, step=20000),
+          xlabel="Environment Steps",
+          ylabel="(Pseudo-) Regret per time-step")
+
+#plt.savefig(folder+"Increase_T_Vaccinations_bound.png")
+
 

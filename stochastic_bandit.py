@@ -15,9 +15,6 @@ class simulation_environment():
     def __init__(self, bandit, forecaster):
         self.bandit = bandit
         self.forecaster = forecaster
-        self.forecaster_rewards = np.empty(1)
-        self.true_rewards = np.empty(1)
-        self.actions = np.empty(1)
         
     def reset_values(self, rounds):
         self.forecaster_rewards = np.zeros(rounds)
@@ -41,7 +38,7 @@ class simulation_environment():
                     rewards=forecaster_rewards[0:t],
                     actions=self.actions[0:t])
             self.actions[t] = action
-            forecaster_rewards[t]+=true_rewards[t,action]
+            forecaster_rewards[t]=true_rewards[t,action]
         self.true_rewards += np.multiply(true_rewards, factor)
         self.forecaster_rewards += np.multiply(forecaster_rewards, factor)
             #log calculations
@@ -144,7 +141,6 @@ class ucb_forecaster():
         self.alpha=alpha
         
     def reset_rounds(self, rounds, K, reps):
-        self.t = 0
         self.mean_reward_list = np.zeros(K, dtype=np.float64)
         self.action_counter_list = np.zeros(K, dtype=int)
         self.rounds=rounds
@@ -169,7 +165,7 @@ class ucb_forecaster():
             n_pulled = self.action_counter_list[i]
             #Updating mean by formula: mean = factor1*prev_mean + factor2*reward
             if(action==i):
-                prev_mean = self.mean_reward_list[i].copy()
+                prev_mean = self.mean_reward_list[i]
                 factor1 = ((n_pulled-1)/(n_pulled))
                 factor2 = (1/n_pulled)
                 self.mean_reward_list[i] = np.add(np.multiply(factor1, prev_mean),
@@ -192,6 +188,18 @@ class ucb_forecaster():
         self.mu_hat_list[t-1]+=np.multiply(self.mean_reward_list, (1/self.reps))
         self.p_s_i_list[t-1]+=np.multiply(p_s_i_list, (1/self.reps))
         return(maximum)
+        
+    #Bernoulli only!!!
+    def return_theoretic_bound(self, expected_values, n):
+        mu_star = max(expected_values)
+        delta_i_list = np.array([mu_star-e_value for e_value in expected_values])
+        delta_i_list = delta_i_list[np.where(delta_i_list>0)[0]]
+        bound = 0.0
+        for delta_i in delta_i_list:
+            sum1 = np.multiply(np.divide(2*self.alpha, delta_i), np.log(n))
+            sum2 = np.divide(self.alpha, np.subtract(self.alpha, 2))
+            bound += sum1+sum2
+        return(bound)
         
     
 
