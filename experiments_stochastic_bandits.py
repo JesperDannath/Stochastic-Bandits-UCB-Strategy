@@ -31,13 +31,13 @@ def plot_list(l, title="", xlabel="", ylabel="", labels="",
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend(labels=labels)
-    plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0])/len(axis_data))),
-               labels=axis_data)
+    #plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0])/len(axis_data))),
+    #           labels=axis_data)
 
 
 #Experiments
 #number of reps
-reps = 40
+reps = 200
 
 ###Two arm bandit
 
@@ -89,7 +89,7 @@ def increase_T(max_T, env, reps=reps, step=1, theory_bound=False):
     if theory_bound: return(regret, pseudo_regret, bounds)
     return(regret, pseudo_regret)
     
-#regret, pseudo_regret = increase_T(100, env1, 5)
+regret, pseudo_regret = increase_T(100, env1, step=1)
         
 plot_list(increase_T(max_T = 100, env=env1, step=1), 
           title="(Pseudo-) Regret per Timestep for increasing \n Number of Rounds",
@@ -170,28 +170,28 @@ bandit_vac = stochastic_bandit(arms=arms_vaccines,
                                expected_values=[0.99, 0.9945, 0.995])
 env_vac = env(bandit_vac, ucb_forecaster(alpha=2.1)) 
 
-env_vac.play_many_rounds(rounds=100000, repetitions=100, log_pseudo_regret=True)
+#env_vac.play_many_rounds(rounds=100000, repetitions=100, log_pseudo_regret=True)
 
-env_vac.play_round(5700000)
+#env_vac.play_round(5700000)
 #Regret: 2629
 #Pseudo-Regret: 2730.454
 
 #Test Against random forecaster
 env_vac_rand = env(bandit_vac, random_forecaster())
-env_vac_rand.play_round(5700000)
+#env_vac_rand.play_round(5700000)
 #Regret: 10260
 #Pseudo_regret: 10449.534
 
 #Increase T:
-incr_T_vac = increase_T(100000, env_vac, reps=30, step=1000, theory_bound=True)
+#incr_T_vac = increase_T(100000, env_vac, reps=30, step=1000, theory_bound=True)
 
 
-plot_list(incr_T_vac,
-          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
-          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
-          axis_data=np.arange(0, 100000, step=20000),
-          xlabel="Environment Steps",
-          ylabel="(Pseudo-) Regret per time-step")
+#plot_list(incr_T_vac,
+#          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
+#          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
+#          axis_data=np.arange(0, 100000, step=20000),
+#          xlabel="Environment Steps",
+#          ylabel="(Pseudo-) Regret per time-step")
 
 #plt.savefig(folder+"Increase_T_Vaccinations_bound.png")
 
