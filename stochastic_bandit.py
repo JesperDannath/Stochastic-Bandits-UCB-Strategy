@@ -26,6 +26,7 @@ class simulation_environment():
         if factor==1: 
             self.reset_values(rounds)
             self.forecaster.reset_rounds(rounds, self.bandit.K, 1)
+        self.forecaster.new_round(self.bandit.K)
         true_rewards = self.bandit.generate_reward_table(rounds)
         forecaster_rewards = np.zeros(rounds)
         self.actions = np.zeros(rounds)
@@ -50,7 +51,7 @@ class simulation_environment():
         for i in range(0, repetitions):
             self.play_round(rounds, factor=1/repetitions)
             if log_pseudo_regret:
-                pseudo_regret += self.get_pseudo_regret( #!!! muss noch überprüft werden
+                pseudo_regret += self.get_pseudo_regret(
                             self.bandit.expected_values)*(1/repetitions)
         self.mean_pseudo_regret = pseudo_regret   
             
@@ -141,13 +142,15 @@ class ucb_forecaster():
         self.alpha=alpha
         
     def reset_rounds(self, rounds, K, reps):
-        self.mean_reward_list = np.zeros(K, dtype=np.float64)
-        self.action_counter_list = np.zeros(K, dtype=int)
         self.rounds=rounds
         self.reps=reps
         self.K = K
         self.mu_hat_list = np.zeros((self.rounds, self.K))
         self.p_s_i_list = np.zeros((self.rounds, self.K))
+        
+    def new_round(self, K):
+        self.mean_reward_list = np.zeros(K, dtype=np.float64)
+        self.action_counter_list = np.zeros(K, dtype=int)
     
     def predict(self, K, rewards, actions):
         last_index = len(rewards)-1
@@ -189,7 +192,7 @@ class ucb_forecaster():
         self.p_s_i_list[t-1]+=np.multiply(p_s_i_list, (1/self.reps))
         return(maximum)
         
-    #Bernoulli only!!!
+    #[0,1]-bounded only!!!
     def return_theoretic_bound(self, expected_values, n):
         mu_star = max(expected_values)
         delta_i_list = np.array([mu_star-e_value for e_value in expected_values])

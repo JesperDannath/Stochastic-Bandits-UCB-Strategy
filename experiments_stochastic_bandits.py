@@ -47,7 +47,11 @@ bandit = stochastic_bandit(arms=[bernoulli(0.2), bernoulli(0.7)],
 env1 = env(bandit, ucb_forecaster())
 #env = env(bandit, random_forecaster)
 
-env1.play_round(rounds=12)
+env1.play_round(rounds=100)
+
+env1.play_many_rounds(rounds=100, repetitions=100, log_pseudo_regret=True)
+
+
 env1.forecaster.return_theoretic_bound([0.2,0.7], 12)
 
 def export_result_sb(env, file):
@@ -183,15 +187,15 @@ env_vac_rand = env(bandit_vac, random_forecaster())
 #Pseudo_regret: 10449.534
 
 #Increase T:
-#incr_T_vac = increase_T(100000, env_vac, reps=30, step=1000, theory_bound=True)
+incr_T_vac = increase_T(100000, env_vac, reps=30, step=5000, theory_bound=True)
 
 
-#plot_list(incr_T_vac,
-#          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
-#          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
-#          axis_data=np.arange(0, 100000, step=20000),
-#          xlabel="Environment Steps",
-#          ylabel="(Pseudo-) Regret per time-step")
+plot_list(incr_T_vac,
+          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
+          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
+          axis_data=np.arange(0, 100000, step=20000),
+          xlabel="Environment Steps",
+          ylabel="(Pseudo-) Regret per time-step")
 
 #plt.savefig(folder+"Increase_T_Vaccinations_bound.png")
 
