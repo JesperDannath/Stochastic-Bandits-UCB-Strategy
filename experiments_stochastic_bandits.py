@@ -31,13 +31,13 @@ def plot_list(l, title="", xlabel="", ylabel="", labels="",
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend(labels=labels)
-    #plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0])/len(axis_data))),
-    #           labels=axis_data)
+    plt.xticks(np.arange(0,len(l[0]), step=int(len(l[0])/len(axis_data))),
+               labels=axis_data)
 
 
 #Experiments
 #number of reps
-reps = 200
+reps = 300
 
 ###Two arm bandit
 
@@ -96,21 +96,34 @@ def increase_T(max_T, env, reps=reps, step=1, theory_bound=False):
 regret, pseudo_regret = increase_T(100, env1, step=1)
         
 plot_list(increase_T(max_T = 100, env=env1, step=1), 
-          title="(Pseudo-) Regret per Timestep for increasing \n Number of Rounds",
-          ylabel="Values",
+          title="(Pseudo-) Regret per Timestep for increasing \n Number of Rounds, p-gap=0.5, alpha="+str(env1.forecaster.alpha),
+          ylabel="Values per Timestep",
           xlabel="Timesteps",
           labels=["Regret", "Pseudo-Regret"],
           axis_data = np.arange(0, 100, step=20))
 
 plt.savefig(folder+"Increase_t_2class.png")
 
-#80 runs seem to be sufficient for convergence
+#100 runs seem to be sufficient for convergence
+#Now include the theoretic bound
+env1.forecaster.set_alpha(0.1)
 
+increase_T_theory_bound = increase_T(max_T = 100, env=env1, step=1, theory_bound=True)
+
+#[np.log(np.array(list)) for list in increase_T_theory_bound]
+plot_list([list[0:len(list)] for list in increase_T_theory_bound], 
+          title="Theoretic bound and (Pseudo-) Regret per Timestep \n for increasing T, p-gap=0.5, alpha="+str(env1.forecaster.alpha),
+          ylabel="Values per Timestep",
+          xlabel="Timesteps",
+          labels=["Regret", "Pseudo-Regret", "Theoretical bound"],
+          axis_data = np.arange(0, 100, step=20))
+
+plt.savefig(folder+"Increase_t_2class_theory_bound_alpha_0.1.png")
 
 
 #Many runs effect of alpha
 def increase_alpha(min_alpha, max_alpha,
-                   step_size, env, T=40, reps=reps):
+                   step_size, env, T=100, reps=reps):
     steps = int((max_alpha-min_alpha)/step_size)
     alpha = min_alpha
     log_alpha = np.zeros(steps)
@@ -129,16 +142,17 @@ alpha_incr_2class = increase_alpha(min_alpha=0.1, max_alpha=4,
                                    step_size=0.1, env=env1)
 
 plot_list(alpha_incr_2class[0:2],
-          title="Effect of Increasing alpha",
+          title="Effect of Increasing alpha \n p-gap=0.5, timesteps=100",
           labels=["Regret", "Pseudo-Regret"],
           axis_data=np.arange(0.1,
                               4.0,
-                              step=0.5))
+                              step=0.5),
+          xlabel="alpha")
 plt.savefig(folder+"Increase_alpha_2class.png")
 #0.5 seems to be a good alpha value
 
 #Many runs effect of p-gap
-def increase_p_gap(step_size, env, T=40, reps=reps):
+def increase_p_gap(step_size, env, T=100, reps=reps):
     steps = int(1/step_size)
     regret = np.zeros(steps)
     pseudo_regret = np.zeros(steps)
@@ -158,45 +172,114 @@ def increase_p_gap(step_size, env, T=40, reps=reps):
         gap[step] = p_optimal-p_suboptimal
     return(regret, pseudo_regret, gap)
     
+env1.forecaster.set_alpha(alpha=1)
+    
 incr_pgap_2class = increase_p_gap(0.01, env1)
     
 plot_list(incr_pgap_2class[0:2],
-          title="Effect of increasing p-gap",
+          title="Effect of increasing p-gap \n timesteps=100, alpha="+str(env1.forecaster.alpha) + ", repetetions="+str(reps),
           labels=["Regret", "Pseudo-Regret"],
-          axis_data=np.arange(0.01, 1, step=0.5))
+          axis_data=np.arange(0.01, 1, step=0.5),
+          xlabel="p-gap")
 plt.savefig(folder+"Increase_p_gap_2class.png")
 
 
 
 #Experiments Vaccine Example
-arms_vaccines = [bernoulli(0.99), bernoulli(0.9945), bernoulli(0.995)]
+arms_vaccines = [bernoulli(0.97), bernoulli(0.994), bernoulli(0.995)]
 bandit_vac = stochastic_bandit(arms=arms_vaccines, 
-                               expected_values=[0.99, 0.9945, 0.995])
+                               expected_values=[0.97, 0.994, 0.995])
 env_vac = env(bandit_vac, ucb_forecaster(alpha=2.1)) 
 
 #env_vac.play_many_rounds(rounds=100000, repetitions=100, log_pseudo_regret=True)
 
-#env_vac.play_round(5700000)
-#Regret: 2629
-#Pseudo-Regret: 2730.454
+tb = env_vac.forecaster.return_theoretic_bound(expected_values=[0.97, 0.994, 0.995],
+                                               n=10000000)
+
+env_vac.play_many_rounds(10000000, repetitions=3, log_pseudo_regret=True)
+#Regret: 3286.666
+#Pseudo-Regret: 3252.047
+#Theoretic bound: 70445.841
+
+
+#Alpha=0.1
+env_vac.forecaster.set_alpha(0.1)
+env_vac.play_many_rounds(10000000, repetitions=3, log_pseudo_regret=True)
+#Regret: 495.666
+#Pseudo-regret: 577.151
+
 
 #Test Against random forecaster
 env_vac_rand = env(bandit_vac, random_forecaster())
-#env_vac_rand.play_round(5700000)
-#Regret: 10260
-#Pseudo_regret: 10449.534
+env_vac_rand.play_many_rounds(10000000, repetitions=3, log_pseudo_regret=True)
+#Regret: 86521.666
+#Pseudo_regret: 86634.758
+
 
 #Increase T:
-incr_T_vac = increase_T(100000, env_vac, reps=30, step=5000, theory_bound=True)
+#Alpha = 2.1
+incr_T_vac_21 = increase_T(100000, env_vac, reps=30, step=2500, theory_bound=True)
 
 
-plot_list(incr_T_vac,
-          title="Development of theoretical bound over time steps \n in Comparison with real (Pseudo-) Regret",
+plot_list(incr_T_vac_21,
+          title="Theoretical bound over time steps in Comparison \n with real (Pseudo-) Regret, repetitions=30, alpha=" + str(env_vac.forecaster.alpha),
           labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
           axis_data=np.arange(0, 100000, step=20000),
-          xlabel="Environment Steps",
+          xlabel="Environment steps",
           ylabel="(Pseudo-) Regret per time-step")
 
-#plt.savefig(folder+"Increase_T_Vaccinations_bound.png")
+plt.savefig(folder+"Increase_T_Vaccinations_bound_alpha_2.1.png")
+
+
+#alpha = 0.1
+env_vac.forecaster.set_alpha(0.1)
+incr_T_vac_01 = increase_T(100000, env_vac, reps=30, step=2500, theory_bound=True)
+
+plot_list(incr_T_vac_01,
+          title="Theoretical bound over time steps in Comparison \n with real (Pseudo-) Regret, repetitions=30, alpha=" + str(env_vac.forecaster.alpha),
+          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
+          axis_data=np.arange(0, 100000, step=20000),
+          xlabel="Environment steps",
+          ylabel="(Pseudo-) Regret per time-step")
+
+plt.savefig(folder+"Increase_T_Vaccinations_bound_alpha_0.1.png")
+
+#alpha=1
+env_vac.forecaster.set_alpha(1.0)
+incr_T_vac_01 = increase_T(100000, env_vac, reps=30, step=2500, theory_bound=True)
+
+plot_list(incr_T_vac_01,
+          title="Theoretical bound over time steps in Comparison \n with real (Pseudo-) Regret, repetitions=30, alpha=" + str(env_vac.forecaster.alpha),
+          labels=["Regret", "Pseudo-Regret", "Theoretical Bound"],
+          axis_data=np.arange(0, 100000, step=20000),
+          xlabel="Environment steps",
+          ylabel="(Pseudo-) Regret per time-step")
+
+plt.savefig(folder+"Increase_T_Vaccinations_bound_alpha_1.png")
+
+
+#Increase_alpha Vaccines
+alpha_incr_vac = increase_alpha(min_alpha=0.1, max_alpha=4,
+                                   step_size=0.1, env=env_vac, T=10)
+
+
+plot_list(alpha_incr_vac[0:2],
+          title="Effect of Increasing alpha \n timesteps=10K, repetitions=30",
+          labels=["Regret", "Pseudo-Regret"],
+          axis_data=np.arange(0.1,
+                              4.0,
+                              step=0.5),
+          xlabel="alpha")
+          
+plt.savefig(folder+"Increase_alpha_vac.png")
+
+
+
+
+
+
+
+
+
 
 

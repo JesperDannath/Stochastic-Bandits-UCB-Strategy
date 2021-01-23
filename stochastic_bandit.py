@@ -123,6 +123,9 @@ class bernoulli():
 #Random forecaster
 class random_forecaster():
     
+    def new_round(self, K):
+        None
+    
     def reset_rounds(self, rounds, K, repetitions):
         None
     
@@ -205,5 +208,4 @@ class ucb_forecaster():
         return(bound)
         
     
-
         
